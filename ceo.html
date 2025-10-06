@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gerente — Painel Executivo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Leaflet for hotspot map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <a class="logo" href="index.html"><strong>De Olho No Lixo</strong><span class="tag">Visão geral e ações críticas</span></a>
+      </div>
+      <nav class="actions">
+        <button id="backBtn" class="btn">Voltar</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding-top:24px;">
+    <section style="display:grid;grid-template-columns:1fr 320px;gap:18px;">
+      <div>
+        <h2>Mural — Agenda de Avisos</h2>
+        <p class="muted">Avisos organizados por importância, data e horário. Clique em um item para ver detalhes ou use "Adicionar aviso".</p>
+
+        <!-- Square agenda block: rounded container with smaller rectangular notices inside -->
+        <section id="agendaBoard" style="margin-top:12px;">
+          <div id="agendaPanel" style="width:100%;aspect-ratio:1/1;max-width:820px;background:var(--panel-bg);padding:16px;border-radius:14px;border:1px solid rgba(0,0,0,0.06);display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,0.04);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="font-size:1.05rem">Agenda de avisos</strong>
+              <button id="addAgendaBtn" class="btn primary">Adicionar aviso</button>
+            </div>
+            <div id="agendaList" style="flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px;"></div>
+          </div>
+        </section>
+
+        <!-- compact preview / details below the square for selection -->
+        <div id="agendaPreviewCompact" style="margin-top:12px;background:var(--panel-bg);padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,0.04);min-height:86px;">
+          <div id="agendaEmpty" class="muted">Selecione um aviso para ver detalhes.</div>
+          <div id="agendaDetail" style="display:none;">
+            <div style="font-weight:700" id="detailTitle"></div>
+            <div class="muted" id="detailMeta" style="font-size:0.9rem;margin-top:6px"></div>
+            <p id="detailText" style="margin-top:8px;color:var(--muted)"></p>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+              <button id="editAgendaBtn" class="btn">Editar</button>
+              <button id="removeAgendaBtn" class="btn ghost">Excluir</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside style="background:var(--panel-bg);padding:14px;border-radius:10px;border:1px solid rgba(0,0,0,0.04);">
+        <h4>Contatos de suporte</h4>
+        <p>Use os números abaixo em emergências ou para escalonamento:</p>
+        <ul style="list-style:none;padding:0;margin-top:8px;">
+          <li><strong>Bombeiros:</strong> <a href="tel:193">193</a></li>
+          <li><strong>Polícia:</strong> <a href="tel:190">190</a></li>
+          <li><strong>Defesa Civil:</strong> <a href="tel:199">199</a></li>
+          <li><strong>Suporte do Projeto:</strong> <a href="tel:+5511900000000">+55 11 90000-0000</a></li>
+        </ul>
+
+        <hr style="margin:12px 0"/>
+
+        <h5>Resumo rápido</h5>
+        <p id="summary" class="muted">Carregando resumo...</p>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span id="yearCEO"></span> Nosso Projeto — Painel Executivo (Gerente)</p>
+    </div>
+  </footer>
+
+  <script>
+    // back button returns to index
+    document.getElementById('backBtn').addEventListener('click', ()=> location.href='index.html');
+
+    // show year
+    document.getElementById('yearCEO').textContent = new Date().getFullYear();
+
+    // load alerts from localStorage reports as example
+    function renderAlerts(){
+      const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+      const container = document.getElementById('alertsList');
+      container.innerHTML = '';
+      if(!reports.length){ container.innerHTML = '<p class="muted">Nenhum alerta recente.</p>'; return; }
+      // prioritize by alert level (critical > high > medium > low) then newest first; low appears last
+      const order = { 'critical':4, 'high':3, 'medium':2, 'low':1 };
+      const prioritized = reports.slice().sort((a,b)=> {
+        const pa = order[a.alertLevel] || 0;
+        const pb = order[b.alertLevel] || 0;
+        if(pb !== pa) return pb - pa; // higher priority first
+        return (new Date(b.created || 0)) - (new Date(a.created || 0)); // newest first within same level
+      }).slice(0,5);
+      prioritized.forEach(r=>{
+        const d = document.createElement('div');
+        d.style.borderLeft = '4px solid rgba(0,0,0,0.06)';
+        d.style.padding = '8px';
+        d.style.marginBottom = '6px';
+        d.innerHTML = `<div style="font-weight:600">${r.type} — ${translateLevel(r.alertLevel)}</div><div class="muted" style="font-size:0.9rem">${new Date(r.created).toLocaleString()}</div><div style="margin-top:6px">${r.desc}</div>`;
+        container.appendChild(d);
+      });
+      // also render hotspots (locations) linked to reports
+      renderHotspots();
+    }
+
+    // Hotspots: cluster user report locations and render top spots with a small map
+    function renderHotspots(){
+      const reports = JSON.parse(localStorage.getItem('reports')||'[]').filter(r=> r.lat && r.lng);
+      const listEl = document.getElementById('hotspotsList');
+      listEl.innerHTML = '';
+      if(!reports.length){ listEl.innerHTML = '<p class="muted">Nenhum local reportado ainda.</p>'; initHotspotMap([]); return; }
+      // cluster by rounding coords to 3 decimal places (~100m). accumulate count and sample desc.
+      const groups = {};
+      reports.forEach(r=>{
+        const lat = Number(r.lat); const lng = Number(r.lng);
+        if(!isFinite(lat) || !isFinite(lng)) return;
+        const key = `${lat.toFixed(3)},${lng.toFixed(3)}`;
+        groups[key] = groups[key] || {count:0, lat, lng, samples:[]};
+        groups[key].count++;
+        if(r.desc) groups[key].samples.push(r.desc);
+      });
+      const arr = Object.values(groups).sort((a,b)=> b.count - a.count);
+      // render top 6
+      arr.slice(0,6).forEach((g, idx)=>{
+        const node = document.createElement('div');
+        node.style.padding = '8px';
+        node.style.borderBottom = '1px solid rgba(0,0,0,0.04)';
+        node.innerHTML = `<strong>#${idx+1} — ${g.count} reportes</strong><div class="muted" style="font-size:0.9rem">${g.lat.toFixed(6)}, ${g.lng.toFixed(6)}</div><div style="margin-top:6px;font-size:0.95rem;color:var(--muted)">${(g.samples[0]||'—')}</div>`;
+        node.style.cursor = 'pointer';
+        node.addEventListener('click', ()=> { if(window._ceoHotspotMap){ window._ceoHotspotMap.setView([g.lat,g.lng], 16); const mk = L.marker([g.lat,g.lng]).addTo(window._ceoHotspotLayer); setTimeout(()=> { window._ceoHotspotLayer.clearLayers(); }, 2000); }});
+        listEl.appendChild(node);
+      });
+      // init map with these points
+      initHotspotMap(arr.slice(0,8));
+    }
+
+    function initHotspotMap(points){
+      // lazy init
+      if(!window._ceoHotspotMap){
+        try{
+          const m = L.map('hotspotsMap', {attributionControl:false, zoomControl:true}).setView([-23.55, -46.63], 12);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
+          window._ceoHotspotMap = m;
+          window._ceoHotspotLayer = L.layerGroup().addTo(m);
+        }catch(e){ console.warn('Leaflet init failed', e); return; }
+      }
+      const layer = window._ceoHotspotLayer;
+      layer.clearLayers();
+      points.forEach(p=>{
+        const circle = L.circle([p.lat, p.lng], {radius: Math.max(30, p.count*15), color:'#d9534f', fillColor:'#d9534f', fillOpacity:0.4});
+        circle.bindPopup(`${p.count} reportes<br>${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`);
+        circle.addTo(layer);
+      });
+      if(points.length) window._ceoHotspotMap.fitBounds(layer.getBounds(), {maxZoom:15, padding:[20,20]});
+    }
+
+    function translateLevel(level){
+      return level === 'low' ? 'Alerta baixo' : level === 'medium' ? 'Alerta médio' : level === 'high' ? 'Alerta alto' : level === 'critical' ? 'Alerta máximo' : (level || '—');
+    }
+
+    renderAlerts();
+    // ensure hotspots updated when reports change elsewhere
+    window.addEventListener('storage', (e)=>{ if(e.key === 'reports' || e.key === 'ceoBulletins') { renderAlerts(); renderHotspots(); } });
+
+    // Agenda / Mural enhanced logic
+    (function(){
+      const STORAGE_KEY = 'ceoAgenda';
+      const listEl = document.getElementById('agendaList');
+      const detail = {wrap: document.getElementById('agendaDetail'), empty: document.getElementById('agendaEmpty'), title: document.getElementById('detailTitle'), meta: document.getElementById('detailMeta'), text: document.getElementById('detailText')};
+      const modal = document.getElementById('agendaModal');
+      const form = document.getElementById('agendaForm');
+      const addBtn = document.getElementById('addAgendaBtn');
+      const closeModal = document.getElementById('closeAgendaModal');
+      const cancelAgenda = document.getElementById('cancelAgenda');
+      const deleteConfirm = document.getElementById('deleteConfirm');
+      const confirmYes = document.getElementById('confirmYes');
+      const confirmNo = document.getElementById('confirmNo');
+      const editBtn = document.getElementById('editAgendaBtn');
+      const removeBtn = document.getElementById('removeAgendaBtn');
+
+      function load(){ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }
+      function save(v){ localStorage.setItem(STORAGE_KEY, JSON.stringify(v)); }
+
+      function cmpPriority(a,b){
+        const order = {critical:4, high:3, medium:2, low:1};
+        const pa = order[a.importance]||0, pb = order[b.importance]||0;
+        if(pa !== pb) return pb - pa;
+        return (b.ts||0) - (a.ts||0);
+      }
+
+      function render(){
+        const items = load().slice().sort(cmpPriority);
+        listEl.innerHTML = '';
+        if(!items.length){ listEl.innerHTML = '<div class="muted">Nenhum aviso.</div>'; showDetail(null); return; }
+        items.forEach(it=>{
+          const node = document.createElement('div');
+          node.className = 'agenda-item';
+          node.style.display = 'flex';
+          node.style.justifyContent = 'space-between';
+          node.style.alignItems = 'flex-start';
+          node.style.padding = '10px';
+          node.style.borderRadius = '8px';
+          node.style.border = '1px solid rgba(0,0,0,0.04)';
+          node.style.background = 'color-mix(in srgb, var(--card-bg) 94%, transparent)';
+          node.dataset.id = it.id;
+          node.innerHTML = `<div style="flex:1">
+            <div style="font-weight:700">${it.title}</div>
+            <div class="muted" style="font-size:0.85rem;margin-top:6px">${it.audience} • ${it.importance}</div>
+          </div>
+          <div style="margin-left:8px;text-align:right"><div style="font-size:0.85rem" class="muted">${it.date||''} ${it.time||''}</div></div>`;
+          node.addEventListener('click', ()=> showDetail(it.id));
+          listEl.appendChild(node);
+        });
+      }
+
+      function showDetail(id){
+        if(!id){ detail.wrap.style.display='none'; detail.empty.style.display='block'; return; }
+        const items = load();
+        const it = items.find(x=> x.id===id);
+        if(!it){ showDetail(null); return; }
+        detail.wrap.style.display='block'; detail.empty.style.display='none';
+        detail.title.textContent = it.title;
+        detail.meta.textContent = `${it.audience} • ${it.importance} • ${new Date(it.ts).toLocaleString()} ${it.date ? '• ' + it.date + (it.time? ' ' + it.time : '') : ''}`;
+        detail.text.textContent = it.text || '';
+        // store current selected id on edit/remove buttons
+        editBtn.dataset.id = removeBtn.dataset.id = it.id;
+      }
+
+      function openModal(data){
+        modal.setAttribute('aria-hidden','false');
+        document.getElementById('modalHeading').textContent = data ? 'Editar aviso' : 'Novo aviso';
+        form.reset();
+        if(data){
+          form.elements['id'].value = data.id;
+          form.elements['title'].value = data.title;
+          form.elements['text'].value = data.text;
+          form.elements['audience'].value = data.audience;
+          form.elements['importance'].value = data.importance;
+          if(data.date) form.elements['date'].value = data.date;
+          if(data.time) form.elements['time'].value = data.time;
+        } else { form.elements['id'].value = ''; }
+        form.querySelector('input[name=title]').focus();
+      }
+
+      function closeModalFn(){ modal.setAttribute('aria-hidden','true'); }
+
+      addBtn.addEventListener('click', ()=> openModal(null));
+      closeModal.addEventListener('click', closeModalFn);
+      cancelAgenda.addEventListener('click', ()=>{
+        // when leaving while editing, ask if they want to delete draft? We show confirm dialog only when explicitly deleting
+        closeModalFn();
+      });
+
+      form.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const fd = new FormData(form);
+        const id = fd.get('id') || ('a' + Date.now() + Math.floor(Math.random()*999));
+        const item = {
+          id,
+          title: (fd.get('title')||'').trim(),
+          text: (fd.get('text')||'').trim(),
+          audience: fd.get('audience') || 'comunidade',
+          importance: fd.get('importance') || 'medium',
+          date: fd.get('date') || '',
+          time: fd.get('time') || '',
+          ts: Date.now()
+        };
+        const list = load().filter(x=> x.id !== id);
+        list.push(item);
+        save(list);
+        render();
+        closeModalFn();
+      });
+
+      // edit / remove flows
+      editBtn.addEventListener('click', (ev)=>{
+        const id = ev.currentTarget.dataset.id;
+        const it = load().find(x=> x.id===id);
+        if(it) openModal(it);
+      });
+      removeBtn.addEventListener('click', (ev)=>{
+        const id = ev.currentTarget.dataset.id;
+        if(!id) return;
+        // show confirm overlay
+        deleteConfirm.setAttribute('aria-hidden','false');
+        confirmYes.dataset.id = id;
+      });
+
+      confirmNo.addEventListener('click', ()=> deleteConfirm.setAttribute('aria-hidden','true'));
+      confirmYes.addEventListener('click', (ev)=>{
+        const id = ev.currentTarget.dataset.id;
+        let list = load().filter(x=> x.id !== id);
+        save(list);
+        deleteConfirm.setAttribute('aria-hidden','true');
+        render();
+        showDetail(null);
+      });
+
+      // initial render
+      render();
+      // sync across tabs
+      window.addEventListener('storage', (e)=> { if(e.key === STORAGE_KEY) render(); });
+    })();
+    // end agenda logic
+
+    // summary
+    (function(){
+      const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+      const summary = document.getElementById('summary');
+      summary.textContent = `Total de reportes registrados: ${reports.length} — Último: ${reports.length? new Date(reports[reports.length-1].created).toLocaleString() : '—'}`;
+    })();
+  </script>
+</body>
+</html>

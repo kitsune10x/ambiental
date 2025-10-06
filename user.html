@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Área do Usuário — Nosso Projeto</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header"><div class="container header-inner"><div class="brand">
+    <a class="logo" href="index.html"><strong>De Olho No Lixo</strong><span class="tag">Acesso do usuário</span></a>
+  </div>
+    <nav>
+      <button id="profileBtn" class="btn ghost" title="Perfil">Perfil</button>
+      <button id="myReportsHeaderBtn" class="btn ghost" title="Meus reportes" style="display:inline-flex;align-items:center;gap:8px;margin-left:8px;">
+        Meus reportes<span id="headerReportsBadge" class="badge" style="min-width:18px;height:18px;font-size:0.75rem;display:inline-grid;padding:0 6px;margin-left:4px;line-height:18px;">0</span>
+      </button>
+      <button id="refreshBtn" class="btn ghost" title="Atualizar página" style="margin-left:8px;">⟳</button>
+    </nav>
+  </div></header>
+  <main class="container" style="padding-top:28px;">
+    <h2>Bem-vindo, Mathias</h2>
+    <p>Área do usuário: veja seus relatórios, ações e participe da comunidade.</p>
+    <ul>
+      <li>Meus relatórios</li>
+      <li>Ações sugeridas</li>
+      <li>Participação comunitária</li>
+    </ul>
+
+    <!-- Theme toggle (mini sun/moon) -->
+    <button id="userThemeToggle" class="theme-toggle" aria-pressed="false" aria-label="Alternar tema">
+      <span class="icon moon" aria-hidden="true">🌙</span>
+      <span class="icon sun" aria-hidden="true">☀️</span>
+      <span class="sr-only">Alternar tema</span>
+    </button>
+
+    <!-- Reporting instructions and map -->
+    <section id="reportSection" style="margin-top:20px;">
+      <h3>Reportar um problema ao ambiente</h3>
+      <p><strong>O que fazer:</strong> descreva o problema que encontrou (lixo, descarte indevido, entupimento, etc.).</p>
+      <p><strong>Como reportar:</strong> clique no mapa para selecionar o local do problema, escreva uma descrição e envie.</p>
+
+      <div class="report-grid" style="display:grid;grid-template-columns:1fr 360px;gap:16px;margin-top:12px;">
+        <div>
+          <div id="map" class="map" aria-label="Mapa para selecionar local do reporte"></div>
+          <p class="muted" style="font-size:0.9rem;margin-top:8px;">Clique no mapa para posicionar o marcador (lat/lng será preenchido).</p>
+        </div>
+
+        <aside class="report-panel" style="padding:12px;border-radius:10px;background:var(--panel-bg);border:1px solid rgba(0,0,0,0.04);">
+          <h4>Criar reporte</h4>
+          <form id="reportForm">
+            <label style="display:block;margin-top:8px;">
+              Endereço (pesquisar)
+              <div style="display:flex;gap:8px;margin-top:6px;">
+                <input id="addressInput" name="address" type="text" placeholder="Ex.: Rua das Flores, 123" style="flex:1;padding:8px;border-radius:8px;border:1px solid #e6e6e6" />
+                <button type="button" id="searchAddress" class="btn">Buscar</button>
+              </div>
+            </label>
+            <label>
+              Tipo
+              <select name="type" required style="width:100%;padding:8px;margin-top:6px;border-radius:8px;">
+                <option value="descarte" selected>Descarte de lixo em local indevido</option>
+              </select>
+            </label>
+            <label style="display:block;margin-top:8px;">
+              Descrição
+              <textarea name="desc" rows="4" required placeholder="Exemplo:''Há um sofá velho jogado no lago''" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;"></textarea>
+            </label>
+            <div style="margin-top:8px;"><button type="button" id="examplesBtn" class="btn ghost" style="padding:6px 10px;font-size:0.95rem;">Exemplos</button></div>
+
+            <!-- hidden coord fields -->
+            <input type="hidden" name="lat" value="" />
+            <input type="hidden" name="lng" value="" />
+            
+            <label style="display:block;margin-top:8px;">
+              Nível de alerta
+              <select name="alertLevel" required style="width:100%;padding:8px;margin-top:6px;border-radius:8px;">
+                <option value="">Selecione o nível</option>
+                <option value="low">Alerta baixo</option>
+                <option value="medium">Alerta médio</option>
+                <option value="high">Alerta alto</option>
+                <option value="critical">Alerta máximo</option>
+              </select>
+            </label>
+
+            <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+              <button type="submit" class="btn primary">Enviar</button>
+              <button type="button" id="clearMarker" class="btn ghost">Limpar</button>
+            </div>
+            <p class="hint" style="margin-top:10px;">Relatórios ficam salvos localmente neste navegador (exemplo).</p>
+          </form>
+        </aside>
+      </div>
+    </section>
+
+    <!-- New: Meus reportes panel (similar to gerente mural but only "Remover") -->
+    <!-- ...My reports moved to modal; button opens modal similar to manager view ... -->
+
+    <button class="btn" id="logoutBtn">Sair</button>
+  </main>
+
+  <!-- Success overlay -->
+  <div id="reportSuccess" class="success-overlay" aria-hidden="true">
+    <div class="success-card" role="dialog" aria-modal="true">
+      <h3>Reporte enviado</h3>
+      <p>Obrigado pela ajuda!</p>
+      <button id="closeSuccess" class="btn">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Large preview overlay for viewing a selected report in bigger format -->
+  <div id="largePreview" class="large-preview" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="card" id="largePreviewCard">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:700" id="lpType">Tipo</div>
+          <div class="meta" id="lpMeta">Meta</div>
+        </div>
+        <button id="closeLargePreview" class="btn ghost" aria-label="Fechar">✕</button>
+      </div>
+      <div class="desc" id="lpDesc"></div>
+      <div style="margin-top:12px;color:var(--muted)" id="lpCoords"></div>
+    </div>
+  </div>
+
+  <!-- Examples modal for alert-level hints -->
+  <div id="examplesModal" class="modal" aria-hidden="true">
+    <div class="modal-panel" style="max-width:360px;text-align:left;">
+      <button class="modal-close" id="closeExamples" aria-label="Fechar">&times;</button>
+      <h4>Exemplos por nível</h4>
+      <ul style="margin-top:10px;line-height:1.6;">
+        <li><strong>Rua</strong> — baixo</li>
+        <li><strong>Terreno baldio</strong> — médio</li>
+        <li><strong>Lagos</strong> — alto</li>
+        <li><strong>Rios</strong> — máximo</li>
+      </ul>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+        <button id="closeExamplesBtn" class="btn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile panel (hidden) -->
+  <div id="profilePanel" class="modal" role="dialog" aria-hidden="true">
+    <div class="modal-panel">
+      <button class="modal-close" id="closeProfile" aria-label="Fechar">&times;</button>
+      <h4>Perfil</h4>
+
+      <!-- Editable profile form -->
+      <form id="profileForm">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="profile-avatar" id="avatarPreview" title="Foto de perfil">
+            <!-- image inserted by JS -->
+            <span id="avatarPlaceholder" style="font-size:1.1rem;color:var(--muted)">👤</span>
+          </div>
+          <div style="flex:1">
+            <div style="font-weight:600" id="profileNameDisplay">Nome</div>
+            <div class="muted" id="profileRoleDisplay">Função</div>
+          </div>
+        </div>
+
+        <div class="profile-upload">
+          <input type="file" id="avatarInput" accept="image/*" />
+          <label for="avatarInput">Escolher foto</label>
+          <button type="button" id="removeAvatar" class="btn ghost">Remover</button>
+        </div>
+
+        <label style="display:block;margin-top:12px;">
+          Nome
+          <input name="name" id="profileName" type="text" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6" />
+        </label>
+
+        <label style="display:block;margin-top:8px;">
+          Email
+          <input name="email" id="profileEmail" type="email" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6" />
+        </label>
+
+        <label style="display:block;margin-top:8px;">
+          Telefone
+          <input name="phone" id="profilePhone" type="tel" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6" />
+        </label>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+          <button type="submit" class="btn primary">Salvar alterações</button>
+          <button type="button" id="cancelProfile" class="btn ghost">Cancelar</button>
+        </div>
+
+        <div id="profileSavedMsg" style="display:none;margin-top:10px;color:var(--muted);font-size:0.95rem;">Perfil salvo.</div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Meus reportes (edit + remove) -->
+  <div id="myReportsModal" class="modal" aria-hidden="true">
+    <div class="modal-panel" style="max-width:720px;">
+      <button class="modal-close" id="closeMyReports" aria-label="Fechar">&times;</button>
+      <h3>Meus reportes</h3>
+      <div id="myReportsModalBody" style="margin-top:8px;">
+        <!-- Category tabs -->
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+          <button id="catAll" class="btn tiny" data-cat="all">Todos</button>
+          <button id="catByType" class="btn tiny" data-cat="type">Por tipo</button>
+          <button id="catByLevel" class="btn tiny" data-cat="level">Por nível</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 360px;gap:12px;">
+          <div id="myReportsModalList" style="display:flex;flex-direction:column;gap:10px;max-height:360px;overflow:auto;"></div>
+          <aside id="myReportsDetail" style="background:var(--panel-bg);padding:12px;border-radius:8px;border:1px solid rgba(0,0,0,0.04);display:flex;flex-direction:column;gap:8px;min-height:160px;">
+            <div id="noSelection" class="muted">Selecione um reporte para ver detalhes.</div>
+            <div id="selectionDetail" style="display:none;">
+              <div style="font-weight:700" id="selType"></div>
+              <div class="muted" id="selMeta" style="font-size:0.9rem"></div>
+              <p id="selDesc" style="margin-top:8px;color:var(--muted)"></p>
+              <div id="selCoords" style="font-size:0.9rem;color:var(--muted)"></div>
+              <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+                <button id="selEdit" class="btn">Editar</button>
+                <button id="selRemove" class="btn ghost">Remover</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{
+      localStorage.removeItem('currentUser');
+      window.location.href = 'index.html';
+    });
+    const cur = JSON.parse(localStorage.getItem('currentUser')||'null');
+    if(!cur || cur.role !== 'user'){ window.location.href='index.html'; }
+
+    // Theme toggle for this page
+    const userToggle = document.getElementById('userThemeToggle');
+    function setUserTheme(isDark){
+      document.body.classList.toggle('dark', isDark);
+      userToggle.setAttribute('aria-pressed', String(isDark));
+      localStorage.setItem('darkMode', isDark ? '1' : '0');
+    }
+    setUserTheme(localStorage.getItem('darkMode') === '1');
+    userToggle.addEventListener('click', ()=> setUserTheme(!document.body.classList.contains('dark')));
+
+    // Header "Meus reportes" badge and click behavior
+    const myReportsHeaderBtn = document.getElementById('myReportsHeaderBtn');
+    const headerBadge = document.getElementById('headerReportsBadge');
+    const refreshBtn = document.getElementById('refreshBtn');
+    refreshBtn?.addEventListener('click', ()=> { location.reload(); });
+    // open a dedicated page to view/edit/remove user's reports
+    myReportsHeaderBtn?.addEventListener('click', ()=> {
+      window.location.href = 'user_reports.html';
+    });
+
+    // Examples modal behavior for "Exemplos" button near description
+    (function(){
+      const exBtn = document.getElementById('examplesBtn');
+      const modal = document.getElementById('examplesModal');
+      const closeX = document.getElementById('closeExamples');
+      const closeBtn = document.getElementById('closeExamplesBtn');
+      if(exBtn){
+        exBtn.addEventListener('click', ()=> {
+          modal.setAttribute('aria-hidden','false');
+          // focus first actionable control for accessibility
+          closeBtn.focus();
+        });
+      }
+      function closeExamples(){ modal.setAttribute('aria-hidden','true'); }
+      closeX?.addEventListener('click', closeExamples);
+      closeBtn?.addEventListener('click', closeExamples);
+      modal?.addEventListener('click', (e)=> { if(e.target === modal) closeExamples(); });
+    })();
+
+    // Leaflet map & reporting logic
+    (function(){
+      const map = L.map('map', {center:[-23.5505, -46.6333], zoom:13}); // default to São Paulo
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
+      let marker = null;
+      function placeMarker(latlng){
+        if(marker) marker.setLatLng(latlng);
+        else marker = L.marker(latlng,{draggable:true}).addTo(map).on('dragend', e => updateCoords(e.target.getLatLng()));
+        updateCoords(latlng);
+      }
+      function updateCoords(latlng){
+        document.querySelector('[name=lat]').value = latlng.lat.toFixed(6);
+        document.querySelector('[name=lng]').value = latlng.lng.toFixed(6);
+      }
+      map.on('click', e => placeMarker(e.latlng));
+      // address search via Nominatim (open) - place marker on first result
+      const addrInput = document.getElementById('addressInput');
+      const searchBtn = document.getElementById('searchAddress');
+      async function geocodeAddress(q){
+        if(!q) return;
+        try{
+          const url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q);
+          const res = await fetch(url, {headers:{'Accept':'application/json'}});
+          const data = await res.json();
+          if(data && data.length){
+            const first = data[0];
+            const latlng = L.latLng(parseFloat(first.lat), parseFloat(first.lon));
+            map.setView(latlng, 17);
+            placeMarker(latlng);
+          } else { alert('Endereço não encontrado. Tente outro termo.'); }
+        }catch(err){ console.error(err); alert('Erro ao pesquisar endereço.'); }
+      }
+      searchBtn.addEventListener('click', ()=> geocodeAddress(addrInput.value.trim()));
+      addrInput.addEventListener('keydown', (e)=> { if(e.key === 'Enter'){ e.preventDefault(); geocodeAddress(addrInput.value.trim()); } });
+
+      document.getElementById('clearMarker').addEventListener('click', ()=>{
+        if(marker) map.removeLayer(marker);
+        marker = null;
+        document.querySelector('[name=lat]').value = '';
+        document.querySelector('[name=lng]').value = '';
+      });
+
+      // handle form submit: save to localStorage list
+      document.getElementById('reportForm').addEventListener('submit', function(e){
+        e.preventDefault();
+        const fd = new FormData(this);
+        // attach reporter name from currentUser when saving
+        const curUser = JSON.parse(localStorage.getItem('currentUser')||'null') || {};
+        const report = {
+          type: fd.get('type'),
+          desc: fd.get('desc'),
+          lat: fd.get('lat'),
+          lng: fd.get('lng'),
+          alertLevel: fd.get('alertLevel'),
+          reporter: curUser.name || curUser.email || 'mathias',
+          created: new Date().toISOString()
+        };
+        if(!report.lat || !report.lng){ alert('Por favor, selecione um local no mapa.'); return; }
+        const list = JSON.parse(localStorage.getItem('reports')||'[]');
+        list.push(report);
+        localStorage.setItem('reports', JSON.stringify(list));
+        // show success overlay
+        document.getElementById('reportSuccess').setAttribute('aria-hidden','false');
+        // clear form and marker (but keep inputs cleared)
+        this.reset();
+        if(marker) map.removeLayer(marker); marker = null;
+      });
+
+      // auto-select alert level based on description keywords
+      (function(){
+        const descField = document.querySelector('textarea[name="desc"]');
+        const levelSelect = document.querySelector('select[name="alertLevel"]');
+        if(!descField || !levelSelect) return;
+        function detectLevelFromText(text){
+          if(!text) return '';
+          const t = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+          const lists = {
+            critical: ['entupindo','frequentemente','alagando','atraindo'],
+            high: ['rio','sofa','sofá','colchao','colchão','poltrona','mesa'],
+            medium: ['terreno baldio','terrenobaldio'],
+            low: ['sacolas','saco de lixo','sacode lixo','sacodelixo']
+          };
+          for(const lvl of ['critical','high','medium','low']){
+            for(const kw of lists[lvl]){
+              if(t.includes(kw)) return lvl === 'critical' ? 'critical' : lvl === 'high' ? 'high' : lvl === 'medium' ? 'medium' : 'low';
+            }
+          }
+          return '';
+        }
+        function applyAutoLevel(){
+          const lv = detectLevelFromText(descField.value || '');
+          if(lv) levelSelect.value = lv;
+        }
+        descField.addEventListener('input', applyAutoLevel);
+      })();
+
+      // close success overlay
+      document.getElementById('closeSuccess').addEventListener('click', ()=>{
+        document.getElementById('reportSuccess').setAttribute('aria-hidden','true');
+        // focus back to map area to allow another report
+        document.getElementById('map').focus();
+      });
+    })();
+
+    // Profile panel interactions and content (uses stored currentUser + reports)
+    (function(){
+      const profileBtn = document.getElementById('profileBtn');
+      const panel = document.getElementById('profilePanel');
+      const closeProfile = document.getElementById('closeProfile');
+      const cancelProfile = document.getElementById('cancelProfile');
+      const form = document.getElementById('profileForm');
+      const avatarInput = document.getElementById('avatarInput');
+      const avatarPreview = document.getElementById('avatarPreview');
+      const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+      const removeAvatar = document.getElementById('removeAvatar');
+      const nameField = document.getElementById('profileName');
+      const emailField = document.getElementById('profileEmail');
+      const phoneField = document.getElementById('profilePhone');
+      const nameDisplay = document.getElementById('profileNameDisplay');
+      const roleDisplay = document.getElementById('profileRoleDisplay');
+      const savedMsg = document.getElementById('profileSavedMsg');
+
+      function openProfile(){
+        const cur = JSON.parse(localStorage.getItem('currentUser')||'null');
+        if(!cur){ alert('Nenhum usuário logado.'); return; }
+        // populate fields from stored user object (extendable)
+        nameField.value = cur.name || cur.email || cur.name || '';
+        emailField.value = cur.email || '';
+        phoneField.value = cur.phone || '';
+        nameDisplay.textContent = cur.name || (cur.email || 'Usuário');
+        roleDisplay.textContent = cur.role === 'admin' ? 'Administrador' : 'Usuário';
+        // avatar
+        if(cur.avatar){
+          avatarPlaceholder.style.display = 'none';
+          avatarPreview.innerHTML = `<img src="${cur.avatar}" alt="Avatar">`;
+        } else {
+          avatarPreview.innerHTML = '';
+          avatarPlaceholder.style.display = 'inline';
+        }
+        savedMsg.style.display = 'none';
+        panel.setAttribute('aria-hidden','false');
+      }
+
+      function closeP(){ panel.setAttribute('aria-hidden','true'); }
+
+      profileBtn.addEventListener('click', openProfile);
+      closeProfile.addEventListener('click', closeP);
+      cancelProfile.addEventListener('click', closeP);
+      panel.addEventListener('click', (e)=> { if(e.target === panel) closeP(); });
+
+      // handle avatar selection & preview
+      avatarInput.addEventListener('change', (ev)=>{
+        const f = ev.target.files && ev.target.files[0];
+        if(!f) return;
+        const reader = new FileReader();
+        reader.onload = function(e){
+          const dataUrl = e.target.result;
+          avatarPlaceholder.style.display = 'none';
+          avatarPreview.innerHTML = `<img src="${dataUrl}" alt="Avatar">`;
+          // temporarily store preview on form (will be saved on submit)
+          avatarPreview.dataset.preview = dataUrl;
+        };
+        reader.readAsDataURL(f);
+      });
+
+      removeAvatar.addEventListener('click', ()=>{
+        avatarPreview.dataset.preview = '';
+        avatarPreview.innerHTML = '';
+        avatarPlaceholder.style.display = 'inline';
+        avatarInput.value = '';
+      });
+
+      // save profile changes
+      form.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const cur = JSON.parse(localStorage.getItem('currentUser')||'null') || {};
+        cur.name = nameField.value.trim() || cur.name || '';
+        cur.email = emailField.value.trim() || cur.email || '';
+        cur.phone = phoneField.value.trim() || cur.phone || '';
+        // if a new preview exists, save it
+        if(avatarPreview.dataset.preview){
+          cur.avatar = avatarPreview.dataset.preview;
+        } else if(!avatarPreview.innerHTML){
+          // removed avatar
+          delete cur.avatar;
+        }
+        localStorage.setItem('currentUser', JSON.stringify(cur));
+        // update displays
+        nameDisplay.textContent = cur.name || cur.email || 'Usuário';
+        savedMsg.style.display = 'block';
+        setTimeout(()=> savedMsg.style.display = 'none', 2000);
+      });
+    })();
+
+    // NEW: render "Meus reportes" for current user with only a Remover action
+    (function(){
+      const headerBadgeEl = document.getElementById('headerReportsBadge');
+      const catAll = document.getElementById('catAll');
+      const catByType = document.getElementById('catByType');
+      const catByLevel = document.getElementById('catByLevel');
+      const curUser = JSON.parse(localStorage.getItem('currentUser')||'null') || {};
+      const modalList = document.getElementById('myReportsModalList');
+
+      function getMyReports(){
+        const all = JSON.parse(localStorage.getItem('reports')||'[]').slice().reverse();
+        return all.filter(r=> (r.reporter === (curUser.name) || r.reporter === (curUser.email) || (r.email && r.email === curUser.email)));
+      }
+
+      // current category state
+      let currentCategory = 'all';
+      function setCategory(c){ currentCategory = c; renderMyReportsModalList(); }
+      catAll?.addEventListener('click', ()=> setCategory('all'));
+      catByType?.addEventListener('click', ()=> setCategory('type'));
+      catByLevel?.addEventListener('click', ()=> setCategory('level'));
+
+      function renderMyReportsModalList(){
+        const mine = getMyReports();
+        modalList.innerHTML = '';
+        if(headerBadgeEl){ headerBadgeEl.textContent = String(mine.length); headerBadgeEl.style.display = mine.length ? 'inline-grid' : 'none'; }
+        if(!mine.length){ modalList.innerHTML = '<div class="muted">Você não tem reportes registrados.</div>'; return; }
+
+        // grouping logic if category selected
+        if(currentCategory === 'type'){
+          const groups = mine.reduce((acc,r)=>{ (acc[r.type||'Outro'] = acc[r.type||'Outro']||[]).push(r); return acc; }, {});
+          Object.keys(groups).forEach(k=>{
+            const hdr = document.createElement('div'); hdr.style.fontWeight='700'; hdr.style.marginTop='6px'; hdr.textContent = k;
+            modalList.appendChild(hdr);
+            groups[k].forEach(r=> appendReportNode(r));
+          });
+        } else if(currentCategory === 'level'){
+          const groups = mine.reduce((acc,r)=>{ (acc[r.alertLevel||'—'] = acc[r.alertLevel||'—']||[]).push(r); return acc; }, {});
+          Object.keys(groups).forEach(k=>{
+            const hdr = document.createElement('div'); hdr.style.fontWeight='700'; hdr.style.marginTop='6px'; hdr.textContent = k;
+            modalList.appendChild(hdr);
+            groups[k].forEach(r=> appendReportNode(r));
+          });
+        } else {
+          mine.forEach(r=> appendReportNode(r));
+        }
+
+        function appendReportNode(r){
+          const created = r.created ? new Date(r.created) : new Date();
+          const node = document.createElement('div');
+          node.className = 'floating-notice';
+          node.dataset.created = created.getTime();
+          node.style.display = 'flex'; node.style.justifyContent='space-between'; node.style.alignItems='center';
+          node.style.padding='10px'; node.style.borderRadius='8px';
+          node.innerHTML = `<div style="flex:1">
+              <div style="font-weight:700">${r.type || 'Reporte'}</div>
+              <div class="muted" style="font-size:0.9rem;margin-top:6px">${translateLevel(r.alertLevel)} • ${created.toLocaleString()}</div>
+              <div style="margin-top:6px;color:var(--muted)">${(r.desc || '').slice(0,140)}</div>
+            </div>
+            <div style="margin-left:12px;text-align:right;display:flex;flex-direction:column;gap:6px">
+              <button class="btn tiny view-report">Ver</button>
+              <button class="btn tiny edit-report">Editar</button>
+              <button class="btn tiny remove-report">Remover</button>
+            </div>`;
+          modalList.appendChild(node);
+
+          node.querySelector('.view-report').addEventListener('click', ()=> showReportDetail(node.dataset.created));
+          node.querySelector('.remove-report').addEventListener('click', ()=>{
+            if(!confirm('Remover este reporte? Esta ação não pode ser desfeita.')) return;
+            const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+            const filtered = reports.filter(rr => {
+              const ts = rr.created ? new Date(rr.created).getTime() : null;
+              return ts !== Number(node.dataset.created);
+            });
+            localStorage.setItem('reports', JSON.stringify(filtered));
+            renderMyReportsModalList();
+            clearSelectionIfMatches(node.dataset.created);
+          });
+
+          node.querySelector('.edit-report').addEventListener('click', ()=> openEditReportDialog(node.dataset.created));
+        }
+
+        // open large preview when user clicks "Ver"
+        function openLargePreview(createdTs){
+          const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+          const rpt = reports.find(r=> (r.created ? new Date(r.created).getTime() : null) === Number(createdTs));
+          if(!rpt) return alert('Reporte não encontrado.');
+          document.getElementById('lpType').textContent = rpt.type || 'Reporte';
+          document.getElementById('lpMeta').textContent = `${translateLevel(rpt.alertLevel)} • ${new Date(rpt.created).toLocaleString()} • Reportado por ${rpt.reporter || 'Você'}`;
+          document.getElementById('lpDesc').textContent = rpt.desc || '';
+          document.getElementById('lpCoords').textContent = rpt.lat && rpt.lng ? `Coordenadas: ${rpt.lat}, ${rpt.lng}` : '';
+          const overlay = document.getElementById('largePreview');
+          overlay.setAttribute('aria-hidden','false');
+          // focus close for accessibility
+          document.getElementById('closeLargePreview').focus();
+        }
+        // wire close button & background click
+        document.getElementById('closeLargePreview').addEventListener('click', ()=> document.getElementById('largePreview').setAttribute('aria-hidden','true'));
+        document.getElementById('largePreview').addEventListener('click', (e)=> { if(e.target === document.getElementById('largePreview')) document.getElementById('largePreview').setAttribute('aria-hidden','true'); });
+
+        // update existing "Ver" handler to open large preview as well as side detail
+        Array.from(modalList.querySelectorAll('.view-report')).forEach(btn=>{
+          btn.addEventListener('click', (ev)=>{
+            const created = ev.currentTarget.closest('.floating-notice')?.dataset.created;
+            if(created) { showReportDetail(created); openLargePreview(created); }
+          });
+        });
+      }
+
+      // selection/detail helpers
+      function showReportDetail(createdTs){
+        const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+        const rpt = reports.find(r=> (r.created ? new Date(r.created).getTime() : null) === Number(createdTs));
+        const no = document.getElementById('noSelection');
+        const wrap = document.getElementById('selectionDetail');
+        if(!rpt){ no.style.display='block'; wrap.style.display='none'; return; }
+        no.style.display='none'; wrap.style.display='block';
+        document.getElementById('selType').textContent = rpt.type || 'Reporte';
+        document.getElementById('selMeta').textContent = `${translateLevel(rpt.alertLevel)} • ${new Date(rpt.created).toLocaleString()} • Reportado por ${rpt.reporter || 'Você'}`;
+        document.getElementById('selDesc').textContent = rpt.desc || '';
+        document.getElementById('selCoords').textContent = rpt.lat && rpt.lng ? `Coordenadas: ${rpt.lat}, ${rpt.lng}` : '';
+        // wire side buttons
+        const selEdit = document.getElementById('selEdit');
+        const selRemove = document.getElementById('selRemove');
+        selEdit.onclick = ()=> openEditReportDialog(createdTs);
+        selRemove.onclick = ()=> {
+          if(!confirm('Remover este reporte? Esta ação não pode ser desfeita.')) return;
+          const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+          const filtered = reports.filter(rr => {
+            const ts = rr.created ? new Date(rr.created).getTime() : null;
+            return ts !== Number(createdTs);
+          });
+          localStorage.setItem('reports', JSON.stringify(filtered));
+          renderMyReportsModalList();
+          showReportDetail(null);
+        };
+      }
+
+      function clearSelectionIfMatches(createdTs){
+        const selMeta = document.getElementById('selMeta').textContent || '';
+        // if currently selected matches the removed timestamp, clear detail pane
+        const current = document.getElementById('selMeta');
+        if(!current) return;
+        // easier: just attempt to refresh detail; if missing will hide
+        showReportDetail(createdTs);
+      }
+
+      // Edit dialog (simple prompt-based editor to keep UI compact)
+      function openEditReportDialog(createdTs){
+        const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+        const idx = reports.findIndex(r=> (r.created ? new Date(r.created).getTime() : null) === Number(createdTs));
+        if(idx === -1){ alert('Reporte não encontrado.'); return; }
+        const rpt = reports[idx];
+        const newDesc = prompt('Editar descrição do reporte:', rpt.desc || '');
+        if(newDesc === null) return; // cancel
+        rpt.desc = newDesc.trim();
+        // optional: allow changing alert level quickly
+        const newLevel = prompt('Nível de alerta (low, medium, high, critical):', rpt.alertLevel || '');
+        if(newLevel !== null && ['low','medium','high','critical'].includes(newLevel.trim())) rpt.alertLevel = newLevel.trim();
+        reports[idx] = rpt;
+        localStorage.setItem('reports', JSON.stringify(reports));
+        renderMyReportsModalList();
+        showReportDetail(createdTs);
+      }
+
+      // initial update and sync
+      renderMyReportsModalList();
+      window.addEventListener('storage', (e)=>{ if(e.key === 'reports') renderMyReportsModalList(); });
+      // expose rendering fn for modal opener
+      window.renderMyReportsModalList = renderMyReportsModalList;
+    })();
+  </script>
+</body>
+</html>

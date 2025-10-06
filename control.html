@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Painel de Controle — Nosso Projeto</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header"><div class="container header-inner"><div class="brand">
+        <a class="logo" href="index.html"><strong>De Olho No Lixo</strong><span class="tag">Painel Executivo (Gerente)</span></a>
+      </div>
+      <nav class="actions" style="display:flex;gap:8px;align-items:center;">
+        <button id="profileBtn" class="btn ghost" title="Perfil" onclick="openProfileFallback()">Perfil</button>
+        <a id="administrarBtn" class="btn ghost" href="administrar/index.html" style="text-decoration:none;margin-left:6px;">Administrar</a>
+        <button id="refreshBtn" class="btn ghost" title="Atualizar página" style="margin-left:8px;">⟳</button>
+      </nav>
+    </div></header>
+  <main class="container" style="padding-top:28px;">
+    <!-- Mural de avisos (painel vertical no canto esquerdo) -->
+    <div id="muralWrapper" style="display:flex;gap:18px;align-items:flex-start;">
+      <aside id="muralSidebar" style="width:320px;min-height:420px;border-radius:12px;padding:12px;background:var(--panel-bg);border:1px solid rgba(0,0,0,0.06);box-shadow:0 12px 40px rgba(0,0,0,0.04);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <strong> Mural de Avisos </strong>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button id="addMuralBtn" class="btn primary" style="background:#28a745;border-color:transparent;">Adicionar</button>
+          </div>
+        </div>
+        <div id="muralList" style="display:flex;flex-direction:column;gap:10px;overflow:auto;padding-right:6px;max-height:340px;">
+          <!-- avisos serão inseridos aqui -->
+        </div>
+      </aside>
+      
+      <!-- new: Abrir reportes button placed next to mural -->
+      <div style="display:flex;flex-direction:column;gap:8px;align-self:flex-start;">
+        <a id="openReportesBtn" class="btn ghost" href="avisos/index.html" style="text-decoration:none;display:inline-flex;align-items:center;">
+          Abrir reportes<span id="reportBadge" class="badge" aria-hidden="true" style="display:none;">0</span>
+        </a>
+      </div>
+
+      <div style="flex:1;">
+        <p class="muted">Selecione um aviso no mural à esquerda para ver detalhes ou editar.</p>
+        <div style="margin-top:12px;">
+          <!-- logout removed as requested -->
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span id="yearCEO"></span> Nosso Projeto — Painel Executivo (Gerente)</p>
+    </div>
+  </footer>
+
+  <!-- Theme toggle for CEO page -->
+  <button id="ceoThemeToggle" class="theme-toggle" aria-pressed="false" aria-label="Alternar tema">
+    <span class="icon moon" aria-hidden="true">🌙</span>
+    <span class="icon sun" aria-hidden="true">☀️</span>
+    <span class="sr-only">Alternar tema</span>
+  </button>
+
+  <!-- Profile panel for CEO (editable) -->
+  <div id="profilePanel" class="modal" role="dialog" aria-hidden="true">
+    <div class="modal-panel">
+      <button class="modal-close" id="closeProfile" aria-label="Fechar">&times;</button>
+      <h4>Perfil</h4>
+      <form id="profileForm">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="profile-avatar" id="avatarPreview"><span id="avatarPlaceholder" style="font-size:1.1rem;color:var(--muted)">👤</span></div>
+          <div style="flex:1">
+            <div style="font-weight:600" id="profileNameDisplay">Nome</div>
+            <div class="muted" id="profileRoleDisplay">Função</div>
+          </div>
+        </div>
+        <div class="profile-upload">
+          <input type="file" id="avatarInput" accept="image/*" />
+          <label for="avatarInput">Escolher foto</label>
+          <button type="button" id="removeAvatar" class="btn ghost">Remover</button>
+        </div>
+        <label style="display:block;margin-top:12px;">
+          Nome
+          <input name="name" id="profileName" type="text" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6" />
+        </label>
+        <label style="display:block;margin-top:8px;">
+          Email
+          <input name="email" id="profileEmail" type="email" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6" />
+        </label>
+        <label style="display:block;margin-top:8px;">
+          Telefone
+          <input name="phone" id="profilePhone" type="tel" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6" />
+        </label>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+          <button type="submit" class="btn primary">Salvar alterações</button>
+          <button type="button" id="cancelProfile" class="btn ghost">Cancelar</button>
+        </div>
+        <div id="profileSavedMsg" style="display:none;margin-top:10px;color:var(--muted);font-size:0.95rem;">Perfil salvo.</div>
+      </form>
+    </div>
+  </div>
+
+  <!-- New: Mural modal for adding notices (translucent page, centered card) -->
+  <div id="muralModal" class="modal" aria-hidden="true">
+    <div class="modal-panel" style="max-width:520px;">
+      <button class="modal-close" id="closeMuralModal" aria-label="Fechar">&times;</button>
+      <h3 id="muralModalHeading">Adicionar aviso</h3>
+      <form id="muralForm">
+        <input type="hidden" name="createdTs" />
+        <label style="display:block;margin-top:8px;">
+          Título
+          <input name="title" type="text" required style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6" />
+        </label>
+        <label style="display:block;margin-top:8px;">
+          Mensagem
+          <textarea name="message" rows="4" required style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6"></textarea>
+        </label>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <label style="flex:1;">
+            Data
+            <input name="date" type="date" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6" />
+          </label>
+          <label style="width:140px;">
+            Hora
+            <input name="time" type="time" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;border:1px solid #e6e6e6" />
+          </label>
+        </div>
+        <label style="display:block;margin-top:8px;">
+          Para quais cargos
+          <select name="audience" required style="width:100%;padding:8px;margin-top:6px;border-radius:8px;">
+            <option value="Gerentes">Gerentes</option>
+            <option value="Trabalhadores">Trabalhadores</option>
+          </select>
+        </label>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+          <button type="button" id="cancelMural" class="btn ghost">Sair</button>
+          <button type="submit" class="btn primary">Enviar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // fallback opener for profile: ensures button always opens and populates panel
+    function openProfileFallback(){
+      const cur = JSON.parse(localStorage.getItem('currentUser')||'null');
+      const panel = document.getElementById('profilePanel');
+      if(!panel){ return; }
+      if(!cur){ alert('Nenhum usuário logado.'); return; }
+      // populate minimal fields so the modal shows meaningful data
+      (document.getElementById('profileName')||{value:''}).value = cur.name || cur.email || '';
+      (document.getElementById('profileEmail')||{value:''}).value = cur.email || '';
+      (document.getElementById('profilePhone')||{value:''}).value = cur.phone || '';
+      (document.getElementById('profileRole')||{value:''}).value = cur.role || 'admin';
+      (document.getElementById('profileNameDisplay')||{textContent:''}).textContent = cur.name || cur.email || 'Usuário';
+      (document.getElementById('profileRoleDisplay')||{textContent:''}).textContent = cur.role === 'admin' ? 'Administrador' : (cur.role || 'Usuário');
+      panel.setAttribute('aria-hidden','false');
+    }
+
+    // Mural add modal logic: opens form, publishes notices to muralList or exits without saving
+    const addBtn = document.getElementById('addMuralBtn');
+    const muralModal = document.getElementById('muralModal');
+    const closeMuralModal = document.getElementById('closeMuralModal');
+    const cancelMural = document.getElementById('cancelMural');
+    const muralForm = document.getElementById('muralForm');
+    const muralList = document.getElementById('muralList');
+
+    function openMuralModal(){
+      muralForm.reset();
+      muralForm.querySelector('[name=createdTs]').value = Date.now();
+      muralModal.setAttribute('aria-hidden','false');
+      muralModal.querySelector('input[name=title]').focus();
+    }
+    function closeMural(){ muralModal.setAttribute('aria-hidden','true'); }
+
+    addBtn?.addEventListener('click', openMuralModal);
+    closeMuralModal?.addEventListener('click', closeMural);
+    cancelMural?.addEventListener('click', closeMural);
+    muralModal?.addEventListener('click', (e)=> { if(e.target === muralModal) closeMural(); });
+
+    // submit: create a mural card with metadata and prepend to list
+    muralForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const fd = new FormData(muralForm);
+      const title = (fd.get('title')||'').trim();
+      const msg = (fd.get('message')||'').trim();
+      const date = fd.get('date') || '';
+      const time = fd.get('time') || '';
+      const audience = fd.get('audience') || '';
+      if(!title || !msg){ alert('Por favor preencha título e mensagem.'); return; }
+      const created = Number(fd.get('createdTs')) || Date.now();
+      const node = document.createElement('div');
+      node.className = 'agenda-item';
+      node.dataset.id = 'mural-' + created;
+      node.innerHTML = `<div style="flex:1">
+          <div style="font-weight:700">${title}</div>
+          <div class="muted" style="font-size:0.85rem;margin-top:6px">${audience} • Publicado em ${new Date(created).toLocaleString()}${date ? ' • Data: ' + date + (time ? ' ' + time : '') : ''}</div>
+          <div style="margin-top:8px;color:var(--muted)">${msg}</div>
+        </div>
+        <div style="margin-left:8px;text-align:right"><button class="btn tiny remove-mural">Remover</button></div>`;
+      muralList.prepend(node);
+      // attach remove handler
+      node.querySelector('.remove-mural').addEventListener('click', (ev)=> ev.target.closest('.agenda-item').remove());
+      closeMural();
+    });
+
+    // removed backBtn (Voltar) per request
+    // theme toggle
+    const ceoToggle = document.getElementById('ceoThemeToggle');
+    const refreshBtn = document.getElementById('refreshBtn');
+    function setCeoTheme(isDark){
+      document.body.classList.toggle('dark', isDark);
+      ceoToggle?.setAttribute('aria-pressed', String(isDark));
+      localStorage.setItem('darkMode', isDark ? '1' : '0');
+    }
+    refreshBtn?.addEventListener('click', ()=> { location.reload(); });
+    setCeoTheme(localStorage.getItem('darkMode') === '1');
+    ceoToggle?.addEventListener('click', ()=> setCeoTheme(!document.body.classList.contains('dark')));
+
+    // simple auth guard: only allow admins
+    (function(){
+      const cur = JSON.parse(localStorage.getItem('currentUser')||'null');
+      if(!cur || cur.role !== 'admin'){ window.location.href='index.html'; }
+      document.getElementById('yearCEO').textContent = new Date().getFullYear();
+      // update summary from reports
+      const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+      document.getElementById('summary').textContent = `Total de reportes registrados: ${reports.length} — Último: ${reports.length? new Date(reports[reports.length-1].created).toLocaleString() : '—'}`;
+    })();
+    
+    // Profile panel behavior (reuse same UX as user page, populated from currentUser)
+    (function(){
+      const profileBtn = document.getElementById('profileBtn');
+      const panel = document.getElementById('profilePanel');
+      const closeProfile = document.getElementById('closeProfile');
+      const cancelProfile = document.getElementById('cancelProfile');
+      const form = document.getElementById('profileForm');
+      const avatarInput = document.getElementById('avatarInput');
+      const avatarPreview = document.getElementById('avatarPreview');
+      const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+      const removeAvatar = document.getElementById('removeAvatar');
+      const nameField = document.getElementById('profileName');
+      const emailField = document.getElementById('profileEmail');
+      const phoneField = document.getElementById('profilePhone');
+      const nameDisplay = document.getElementById('profileNameDisplay');
+      const roleDisplay = document.getElementById('profileRoleDisplay');
+      const savedMsg = document.getElementById('profileSavedMsg');
+
+      function openProfile(){
+        const cur = JSON.parse(localStorage.getItem('currentUser')||'null');
+        if(!cur){ alert('Nenhum usuário logado.'); return; }
+        nameField.value = cur.name || cur.email || '';
+        emailField.value = cur.email || '';
+        phoneField.value = cur.phone || '';
+        // ensure role select reflects stored role (fallback to admin for this page)
+        document.getElementById('profileRole').value = cur.role || 'admin';
+        nameDisplay.textContent = cur.name || cur.email || 'Usuário';
+        roleDisplay.textContent = cur.role === 'admin' ? 'Administrador' : (cur.role || 'Usuário');
+        if(cur.avatar){
+          avatarPlaceholder.style.display = 'none';
+          avatarPreview.innerHTML = `<img src="${cur.avatar}" alt="Avatar">`;
+        } else {
+          avatarPreview.innerHTML = '';
+          avatarPlaceholder.style.display = 'inline';
+        }
+        savedMsg.style.display = 'none';
+        panel.setAttribute('aria-hidden','false');
+      }
+      function closeP(){ panel.setAttribute('aria-hidden','true'); }
+      profileBtn?.addEventListener('click', openProfile);
+      closeProfile?.addEventListener('click', closeP);
+      cancelProfile?.addEventListener('click', closeP);
+      panel?.addEventListener('click', (e)=> { if(e.target === panel) closeP(); });
+
+      avatarInput.addEventListener('change', (ev)=>{
+        const f = ev.target.files && ev.target.files[0];
+        if(!f) return;
+        const reader = new FileReader();
+        reader.onload = function(e){
+          const dataUrl = e.target.result;
+          avatarPlaceholder.style.display = 'none';
+          avatarPreview.innerHTML = `<img src="${dataUrl}" alt="Avatar">`;
+          avatarPreview.dataset.preview = dataUrl;
+        };
+        reader.readAsDataURL(f);
+      });
+      removeAvatar.addEventListener('click', ()=>{
+        avatarPreview.dataset.preview = '';
+        avatarPreview.innerHTML = '';
+        avatarPlaceholder.style.display = 'inline';
+        avatarInput.value = '';
+      });
+      form.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const cur = JSON.parse(localStorage.getItem('currentUser')||'null') || {};
+        cur.name = nameField.value.trim() || cur.name || '';
+        cur.email = emailField.value.trim() || cur.email || '';
+        cur.phone = phoneField.value.trim() || cur.phone || '';
+        // save editable role field
+        cur.role = (document.getElementById('profileRole')?.value) || cur.role || 'admin';
+        if(avatarPreview.dataset.preview){
+          cur.avatar = avatarPreview.dataset.preview;
+        } else if(!avatarPreview.innerHTML){
+          delete cur.avatar;
+        }
+        localStorage.setItem('currentUser', JSON.stringify(cur));
+        nameDisplay.textContent = cur.name || cur.email || 'Usuário';
+        savedMsg.style.display = 'block';
+        setTimeout(()=> savedMsg.style.display = 'none', 2000);
+      });
+    })();
+
+    // NEW: populate reports sidebar with live countdowns and color shift (green -> red over 1 hour)
+    (function(){
+      const listEl = document.getElementById('reportsList');
+      function renderReports(){
+        const reports = JSON.parse(localStorage.getItem('reports')||'[]').slice().reverse(); // newest first
+        listEl.innerHTML = '';
+        if(!reports.length){ listEl.innerHTML = '<div class="muted">Nenhum reporte recente.</div>'; return; }
+        reports.slice(0,20).forEach((r, idx)=>{
+          const created = r.created ? new Date(r.created).getTime() : Date.now();
+          const node = document.createElement('div');
+          node.className = 'floating-notice';
+          node.style.display = 'flex';
+          node.style.justifyContent = 'space-between';
+          node.style.alignItems = 'center';
+          node.style.padding = '10px';
+          node.style.borderRadius = '8px';
+          node.style.transition = 'background .3s, border-color .3s';
+          node.dataset.created = created;
+          node.innerHTML = `<div style="flex:1">
+              <div style="font-weight:700;font-size:0.95rem">${r.type || 'Reporte'}</div>
+              <div class="muted" style="font-size:0.85rem;margin-top:6px">${translateLevel(r.alertLevel)} • ${new Date(created).toLocaleDateString()} ${new Date(created).toLocaleTimeString()}</div>
+            </div>
+            <div style="width:86px;text-align:right">
+              <div style="font-size:0.95rem;margin-bottom:6px" class="timeLeft">--:--</div>
+            </div>`;
+          node.addEventListener('click', ()=> { alert((r.desc||'Sem descrição')); });
+          listEl.appendChild(node);
+        });
+        updateTimers(); // initial update
+      }
+      // compute color from green (0) to red (1) based on age / 1 hour
+      function agePercent(createdTs){
+        const age = Date.now() - createdTs;
+        return Math.min(1, Math.max(0, age / (60*60*1000)));
+      }
+      function formatRemaining(ms){
+        const remaining = Math.max(0, 60*60*1000 - ms);
+        const m = Math.floor(remaining / 60000);
+        const s = Math.floor((remaining % 60000) / 1000);
+        return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      }
+      function updateTimers(){
+        const items = Array.from(listEl.children);
+        items.forEach(node=>{
+          const created = Number(node.dataset.created) || Date.now();
+          const p = agePercent(created);
+          // hue from 120 (green) to 0 (red)
+          const hue = Math.round(120 - (120 * p));
+          node.style.background = `linear-gradient(90deg, hsl(${hue} 70% 85%) 0%, rgba(255,255,255,0.0) 100%)`;
+          node.style.border = `1px solid hsl(${hue} 60% 70%)`;
+          const ageMs = Date.now() - created;
+          const timeLeft = formatRemaining(ageMs);
+          node.querySelector('.timeLeft').textContent = timeLeft;
+          // if expired (>1h) visually mark and optionally remove after a short blink
+          if(ageMs >= 60*60*1000){
+            node.style.opacity = '0.5';
+            node.style.filter = 'grayscale(40%)';
+          } else {
+            node.style.opacity = '1';
+            node.style.filter = '';
+          }
+        });
+      }
+      // initial render and interval updates
+      renderReports();
+      setInterval(updateTimers, 1000);
+      // update when reports change elsewhere
+      window.addEventListener('storage', (e)=> { if(e.key === 'reports') renderReports(); });
+    })();
+
+    // update report badge count for "Abrir reportes" link
+    (function(){
+      const badge = document.getElementById('reportBadge');
+      const btn = document.getElementById('openReportesBtn');
+      function updateBadge(){
+        const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+        const n = reports.length;
+        if(!badge || !btn) return;
+        if(n > 0){
+          badge.textContent = String(n);
+          badge.style.display = 'inline-grid';
+        } else {
+          badge.style.display = 'none';
+        }
+        // also set accessible label on the link
+        btn.setAttribute('aria-label', `Abrir reportes — ${n} reportes`);
+      }
+      // initial
+      updateBadge();
+      // update on storage events (other tabs) and when this tab updates localStorage
+      window.addEventListener('storage', (e)=> { if(e.key === 'reports') updateBadge(); });
+      // small fallback: poll occasional changes (covers same-tab writes that may not trigger storage)
+      let last = JSON.stringify(JSON.parse(localStorage.getItem('reports')||'[]'));
+      setInterval(()=>{
+        const cur = JSON.stringify(JSON.parse(localStorage.getItem('reports')||'[]'));
+        if(cur !== last){ last = cur; updateBadge(); }
+      }, 1200);
+    })();
+  </script>
+</body>
+</html>
