@@ -3,128 +3,255 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Nosso Projeto - Impacto Ambiental</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Calistoga&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <meta name="description" content="Descrição do projeto e como ele ajuda o ambiente.">
+  <title>Avisos — Reportes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
   <header class="site-header">
     <div class="container header-inner">
       <div class="brand">
-        <a class="logo" href="index.html" aria-label="Ir para a página inicial">
-          <strong>De Olho No Lixo</strong>
-          <span class="tag">Tecnologia para um ambiente melhor</span>
-        </a>
+        <a class="logo" href="../index.html"><strong>De Olho No Lixo</strong><span class="tag">Lista de reportes enviados (compartilhado)</span></a>
       </div>
-
       <nav class="actions">
-        <button id="loginBtn" class="btn ghost">Entrar</button>
+        <button onclick="history.back()" class="btn">Voltar</button>
       </nav>
     </div>
   </header>
 
-  <main>
-    <section class="hero container" aria-labelledby="hero-title">
-      <div class="hero-text">
-        <h2 id="hero-title">O que fazemos</h2>
-        <p>
-          Oferecemos um serviço onde a comunidade pode reportar problemas ambientais — por enquanto
-          focado em lixo descartado em locais indevidos. Recebemos a localização e descrição para
-          facilitar ações de correção e monitoramento local.
-        </p>
-        <ul class="features">
-          <li>Monitoramento em tempo real</li>
-          <li>Relatórios fáceis de entender</li>
-          <li>Ações guiadas para comunidades</li>
-        </ul>
-      </div>
-      <div class="hero-visual">
-        <img src="project_scene.png" alt="Ilustração: sensores e comunidade trabalhando juntos" />
-      </div>
+  <main class="container" style="padding-top:20px;">
+    <section>
+      <h2>Reportes recentes</h2>
+      <div id="avisosList" style="margin-top:12px;display:flex;flex-direction:column;gap:12px;"></div>
+      <div id="noAvisos" class="muted" style="margin-top:12px;display:none;">Nenhum reporte encontrado.</div>
     </section>
 
-    <section class="impact container" aria-labelledby="impact-title">
-      <h3 id="impact-title">Como ajudamos o seu ambiente</h3>
-      <div class="cards">
-        <figure class="card">
-          <img src="sensor_field.png" alt="Campo com sensores instalados" />
-          <figcaption>
-            <strong>Sensores locais</strong>
-            <p>Coleta de dados precisos e contínuos.</p>
-          </figcaption>
-        </figure>
-
-        <figure class="card">
-          <img src="community_action.png" alt="Voluntários realizando ação ambiental" />
-          <figcaption>
-            <strong>Ações comunitárias</strong>
-            <p>Projetos locais com resultados mensuráveis.</p>
-          </figcaption>
-        </figure>
-
-        <figure class="card">
-          <img src="reports.png" alt="Relatório simplificado mostrando melhorias" />
-          <figcaption>
-            <strong>Relatórios claros</strong>
-            <p>Decisões baseadas em dados acessíveis.</p>
-          </figcaption>
-        </figure>
+    <!-- Concluídos -->
+    <section style="margin-top:18px;">
+      <h3>Concluídos</h3>
+      <div id="concludedSection" style="margin-top:8px;">
+        <div id="concludedList" class="muted" style="max-height:220px;overflow:auto;">Nenhum registro concluído.</div>
       </div>
-    </section>
-
-    <section class="reviews container" aria-labelledby="reviews-title">
-      <h3 id="reviews-title">Avaliações</h3>
-      <div id="reviewsList" class="reviews-list" aria-live="polite">
-        <!-- Avaliações geradas por JS -->
-      </div>
-      <button id="moreReviews" class="btn">Ver mais avaliações</button>
     </section>
   </main>
 
   <footer class="site-footer">
-    <div class="container">
-      <p>&copy; <span id="year"></span> Nosso Projeto — Feito para o ambiente</p>
-    </div>
+    <div class="container"><p>&copy; <span id="year"></span> Nosso Projeto — Avisos</p></div>
   </footer>
 
-  <!-- Login Modal -->
-  <div id="loginModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-panel" role="document">
-      <button class="modal-close" id="closeModal" aria-label="Fechar">&times;</button>
-      <h4>Entrar</h4>
-      <form id="loginForm" novalidate>
-        <label>
-          Nome do cadastrado
-          <input type="text" name="username" required />
-        </label>
-        <label>
-          Senha
-          <input type="password" name="password" required minlength="6" />
-        </label>
-        <div class="modal-actions">
-          <button type="submit" class="btn primary">Entrar</button>
-          <button type="button" class="btn ghost" id="cancelBtn">Cancelar</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-          <a href="#" id="forgotPwd" style="font-size:0.9rem;color:var(--accent);text-decoration:none;">Esqueci a senha</a>
-        </div>
-      </form>
+  <!-- Confirmation modal for removals -->
+  <div id="confirmOverlay" class="modal" aria-hidden="true" style="backdrop-filter: blur(4px);">
+    <div class="modal-panel" role="dialog" aria-modal="true" style="max-width:360px;text-align:center;">
+      <div style="font-weight:700;margin-bottom:8px;">Confirmar a denúncia?</div>
+      <div id="confirmMsg" style="margin-bottom:14px;color:var(--muted)">Você realmente deseja denunciar esse reporte?</div>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="confirmYesBtn" class="btn primary">Sim</button>
+        <button id="confirmNoBtn" class="btn ghost">Não</button>
+      </div>
     </div>
   </div>
 
-  <button id="themeToggle" class="theme-toggle" aria-pressed="false" aria-label="Alternar tema">
-    <span class="icon moon" aria-hidden="true">🌙</span>
-    <span class="icon sun" aria-hidden="true">☀️</span>
-    <span class="sr-only">Alternar tema</span>
-  </button>
+  <!-- Green translucent overlay shown when a report is concluded -->
+  <div id="concludedOverlay" class="success-overlay" aria-hidden="true" style="background: rgba(34, 139, 34, 0.12);">
+    <div class="success-card" role="dialog" aria-modal="true" style="background: rgba(34, 139, 34, 0.95);">
+      <h3 style="margin:0;color:white;">Reporte concluído</h3>
+      <p style="color:rgba(255,255,255,0.95);margin-top:8px;">Esse reporte foi concluído.</p>
+      <button id="closeConcluded" class="btn" style="margin-top:12px;">Fechar</button>
+    </div>
+  </div>
 
-  <script type="importmap">
-  {
-    "imports": {}
-  }
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    function render(){
+      const listEl = document.getElementById('avisosList');
+      // only show non-concluded reports in the "Reportes recentes" list
+      const reports = JSON.parse(localStorage.getItem('reports')||'[]').slice().reverse().filter(r => !r.concluded);
+      listEl.innerHTML = '';
+      if(!reports.length){
+        document.getElementById('noAvisos').style.display = 'block';
+        return;
+      }
+      document.getElementById('noAvisos').style.display = 'none';
+      reports.forEach(r=>{
+        const created = r.created ? new Date(r.created) : new Date();
+        // prefer explicit reporter field (saved at submit), fallback to sensible values (no "Anônimo")
+        const reporter = r.user || r.name || r.reporter || r.email || 'mathias';
+        const node = document.createElement('div');
+        node.className = 'floating-notice';
+        node.dataset.created = created.getTime();
+        node.style.display = 'flex';
+        node.style.justifyContent = 'space-between';
+        node.style.alignItems = 'center';
+        node.style.padding = '12px';
+        node.style.borderRadius = '8px';
+        node.innerHTML = `<div style="flex:1">
+            <div style="font-size:0.9rem;color:var(--muted);margin-bottom:6px">${reporter}</div>
+            <div style="font-weight:700">${r.type || 'Reporte'}</div>
+            <div class="muted" style="font-size:0.88rem;margin-top:6px">${translateLevel(r.alertLevel)} • ${created.toLocaleDateString()} • ${created.toLocaleTimeString()}</div>
+            <div style="margin-top:8px;color:var(--muted)">${r.desc || ''}</div>
+            <div style="margin-top:6px;font-size:0.85rem;color:var(--muted)">${r.lat && r.lng ? `Coordenadas: ${r.lat}, ${r.lng}` : ''}</div>
+          </div>
+          <div style="margin-left:12px;text-align:right">
+            <div style="font-size:0.85rem;color:var(--muted)">${created.toLocaleString()}</div>
+          </div>`;
+        node.addEventListener('click', ()=> {
+          // quick inspect
+          alert(`${r.type || 'Reporte'}\n\n${r.desc || ''}\n\n${created.toLocaleString()}${r.lat && r.lng ? '\nCoordenadas: ' + r.lat + ', ' + r.lng : ''}`);
+        });
+        listEl.appendChild(node);
+      });
+    }
+
+    function translateLevel(level){
+      return level === 'low' ? 'Alerta baixo' : level === 'medium' ? 'Alerta médio' : level === 'high' ? 'Alerta alto' : level === 'critical' ? 'Alerta máximo' : (level || '—');
+    }
+
+    // render concluded reports (those with concluded: true)
+    function renderConcluded(){
+      const el = document.getElementById('concludedList');
+      const reports = JSON.parse(localStorage.getItem('reports')||'[]').slice().reverse();
+      const concluded = reports.filter(r=> r.concluded);
+      if(!concluded.length){ el.innerHTML = '<div class="muted">Nenhum registro concluído.</div>'; return; }
+      el.innerHTML = '';
+      concluded.forEach(r=>{
+        const created = r.concludedAt ? new Date(r.concludedAt) : (r.created ? new Date(r.created) : new Date());
+        const node = document.createElement('div');
+        node.className = 'floating-notice';
+        node.style.padding = '10px'; node.style.borderRadius = '8px'; node.style.marginBottom = '8px';
+        node.innerHTML = `<div style="font-weight:700">${r.type || 'Reporte'}</div><div class="muted" style="font-size:0.9rem">${translateLevel(r.alertLevel)} • ${created.toLocaleString()}</div><div style="margin-top:6px;color:var(--muted)">${r.desc || ''}</div>`;
+        el.appendChild(node);
+      });
+    }
+
+    render();
+    renderConcluded();
+    // react to storage changes (when user reports)
+    window.addEventListener('storage', (e)=> { if(e.key === 'reports') { render(); renderConcluded(); } });
   </script>
-  <script src="app.js" type="module"></script>
+
+  <script>
+    (function(){
+      const listEl = document.getElementById('avisosList');
+      // used to track which report action is pending (created timestamp)
+      const overlay = document.getElementById('confirmOverlay');
+      const yesBtn = document.getElementById('confirmYesBtn');
+      const noBtn = document.getElementById('confirmNoBtn');
+      let pendingCreated = null;
+
+      function openConfirm(created, node){
+        pendingCreated = created;
+        overlay.setAttribute('aria-hidden','false');
+        // trap focus briefly
+        yesBtn.focus();
+      }
+      function closeConfirm(){
+        pendingCreated = null;
+        overlay.setAttribute('aria-hidden','true');
+      }
+
+      function enhance(){
+        Array.from(listEl.children).forEach(node=>{
+          if(node.dataset.enhanced) return; node.dataset.enhanced = '1';
+          const created = Number(node.dataset.created) || Date.now();
+          // add controls
+          const ctrl = document.createElement('div'); ctrl.style.marginTop='8px';
+          // speaker/report flag button (denúncia)
+          const speaker = document.createElement('button');
+          speaker.className = 'btn tiny';
+          speaker.title = 'Denunciar reporte';
+          speaker.style.background = '#ffecec';
+          speaker.style.color = '#c0392b';
+          speaker.style.border = '1px solid rgba(0,0,0,0.04)';
+          speaker.style.padding = '6px';
+          speaker.style.borderRadius = '6px';
+          speaker.style.marginRight = '6px';
+          speaker.innerHTML = '🔊';
+          // conclude button (previously "Remover")
+          const del = document.createElement('button'); del.textContent='Concluir'; del.className='btn tiny';
+          ctrl.appendChild(del);
+          ctrl.insertBefore(speaker, del);
+          node.querySelector('div')?.appendChild(ctrl);
+
+          // conclude action (previously "Remover")
+          del.addEventListener('click', ()=>{
+            // mark report as concluded and persist
+            const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+            const idx = reports.findIndex(rr => (rr.created ? new Date(rr.created).getTime() : null) === Number(node.dataset.created));
+            if(idx !== -1){
+              reports[idx].concluded = true;
+              reports[idx].concludedAt = new Date().toISOString();
+              localStorage.setItem('reports', JSON.stringify(reports));
+            }
+            // visual feedback and refresh lists
+            node.style.opacity = '0.6';
+            node.style.filter = 'grayscale(40%)';
+            if(!node.querySelector('.done-badge')) {
+              const b = document.createElement('span'); b.className='done-badge'; b.textContent='Concluído'; b.style.fontSize='0.8rem'; b.style.marginLeft='8px'; b.style.color='var(--muted)';
+              node.querySelector('div').firstElementChild?.appendChild(b);
+            }
+            render();
+            renderConcluded();
+            // show green translucent concluded overlay
+            const conclOverlay = document.getElementById('concludedOverlay');
+            if(conclOverlay){
+              conclOverlay.setAttribute('aria-hidden','false');
+              document.getElementById('closeConcluded').focus();
+            }
+          });
+
+          // speaker opens the denuncia confirm and will remove the report if confirmed
+          speaker.addEventListener('click', ()=>{
+            openConfirm(created, node);
+          });
+        });
+      }
+
+      // handle confirm actions
+      yesBtn.addEventListener('click', ()=>{
+        if(!pendingCreated) return closeConfirm();
+        // remove the report from localStorage by matching its created timestamp (denúncia confirmed)
+        const reports = JSON.parse(localStorage.getItem('reports')||'[]');
+        const filtered = reports.filter(r => {
+          const ts = r.created ? new Date(r.created).getTime() : null;
+          return ts !== Number(pendingCreated);
+        });
+        localStorage.setItem('reports', JSON.stringify(filtered));
+        // re-render the list in this page and close confirm
+        render();
+        // ensure per-item controls (Remover / Escrever) remain after deletion
+        if(typeof enhance === 'function') try{ enhance(); }catch(e){/* ignore */ }
+        closeConfirm();
+      });
+      noBtn.addEventListener('click', closeConfirm);
+      // close when clicking overlay background
+      overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeConfirm(); });
+
+      // concluded overlay close handler
+      const concludedOverlayEl = document.getElementById('concludedOverlay');
+      const closeConcludedBtn = document.getElementById('closeConcluded');
+      if(closeConcludedBtn && concludedOverlayEl){
+        closeConcludedBtn.addEventListener('click', ()=> concludedOverlayEl.setAttribute('aria-hidden','true'));
+        concludedOverlayEl.addEventListener('click', (e)=> { if(e.target === concludedOverlayEl) concludedOverlayEl.setAttribute('aria-hidden','true'); });
+      }
+
+      function ageUpdate(){
+        Array.from(listEl.children).forEach(node=>{
+          const created = Number(node.dataset.created) || Date.now();
+          const age = Date.now() - created;
+          const p = Math.min(1, Math.max(0, age / (60*60*1000)));
+          const hue = Math.round(120 - (120 * p));
+          node.style.background = `linear-gradient(90deg, hsl(${hue} 70% 90%) 0%, rgba(255,255,255,0) 100%)`;
+          node.style.border = `1px solid hsl(${hue} 60% 75%)`;
+          const expired = age >= 60*60*1000;
+          node.style.opacity = expired ? '0.6' : '1';
+        });
+      }
+      // run after initial render and on storage changes
+      setTimeout(()=>{ enhance(); ageUpdate(); }, 200);
+      window.addEventListener('storage', (e)=> { if(e.key === 'reports') { setTimeout(()=>{ render(); enhance(); ageUpdate(); },100); }});
+      setInterval(ageUpdate,1000);
+    })();
+  </script>
 </body>
 </html>
